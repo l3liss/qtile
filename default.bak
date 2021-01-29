@@ -1,150 +1,154 @@
 #l3ox qtile config
 
-from typing import List  # noqa: F401
+import os
+import subprocess
 
-from libqtile import bar, layout, widget
+from libqtile import bar, layout, widget, hook, qtile
 from libqtile.config import Click, Drag, Group, Key, Match, Screen
 from libqtile.lazy import lazy
-from libqtile.utils import guess_terminal
 
 mod = "mod4"
-terminal = guess_terminal()
 
 keys = [
-    # Switch between windows
-    Key([mod], "h", lazy.layout.left(), desc="Move focus to left"),
-    Key([mod], "l", lazy.layout.right(), desc="Move focus to right"),
-    Key([mod], "j", lazy.layout.down(), desc="Move focus down"),
-    Key([mod], "k", lazy.layout.up(), desc="Move focus up"),
-    Key([mod], "space", lazy.layout.next(),
-        desc="Move window focus to other window"),
-
-    # Move windows between left/right columns or move up/down in current stack.
-    # Moving out of range in Columns layout will create new column.
-    Key([mod, "shift"], "h", lazy.layout.shuffle_left(),
-        desc="Move window to the left"),
-    Key([mod, "shift"], "l", lazy.layout.shuffle_right(),
-        desc="Move window to the right"),
-    Key([mod, "shift"], "j", lazy.layout.shuffle_down(),
-        desc="Move window down"),
-    Key([mod, "shift"], "k", lazy.layout.shuffle_up(), desc="Move window up"),
-
-    # Grow windows. If current window is on the edge of screen and direction
-    # will be to screen edge - window would shrink.
-    Key([mod, "control"], "h", lazy.layout.grow_left(),
-        desc="Grow window to the left"),
-    Key([mod, "control"], "l", lazy.layout.grow_right(),
-        desc="Grow window to the right"),
-    Key([mod, "control"], "j", lazy.layout.grow_down(),
-        desc="Grow window down"),
-    Key([mod, "control"], "k", lazy.layout.grow_up(), desc="Grow window up"),
-    Key([mod], "n", lazy.layout.normalize(), desc="Reset all window sizes"),
-
-    # Toggle between split and unsplit sides of stack.
-    # Split = all windows displayed
-    # Unsplit = 1 window displayed, like Max layout, but still with
-    # multiple stack panes
-    Key([mod, "shift"], "Return", lazy.layout.toggle_split(),
-        desc="Toggle between split and unsplit sides of stack"),
-    Key([mod], "Return", lazy.spawn(terminal), desc="Launch terminal"),
-
-    # Toggle between different layouts as defined below
-    Key([mod], "Tab", lazy.next_layout(), desc="Toggle between layouts"),
-    Key([mod], "w", lazy.window.kill(), desc="Kill focused window"),
-
-    Key([mod, "control"], "r", lazy.restart(), desc="Restart Qtile"),
-    Key([mod, "control"], "q", lazy.shutdown(), desc="Shutdown Qtile"),
-    Key([mod], "r", lazy.spawncmd(),
-        #desc="Spawn a command using a prompt widget"),
+	# movement controls
+    Key([mod], "h", lazy.layout.left()),  # focus left
+    Key([mod], "l", lazy.layout.right()), # focus right
+    Key([mod], "j", lazy.layout.down()),  # focus down
+    Key([mod], "k", lazy.layout.up()),    # focus up
+    Key([mod], "space", lazy.layout.next()),
+    Key([mod, "shift"], "h", lazy.layout.shuffle_left()),  # move window left
+    Key([mod, "shift"], "l", lazy.layout.shuffle_right()), # move window right
+    Key([mod, "shift"], "j", lazy.layout.shuffle_down()),  # move window down
+    Key([mod, "shift"], "k", lazy.layout.shuffle_up()),    # move window up
+    Key([mod, "control"], "h", lazy.layout.grow_left()),   # grow window left
+    Key([mod, "control"], "l", lazy.layout.grow_right()),  # grow window right
+    Key([mod, "control"], "j", lazy.layout.grow_down()),   # grow window down
+    Key([mod, "control"], "k", lazy.layout.grow_up()),     # grow window up   
+    Key([mod], "n", lazy.layout.normalize()),		   # reset window sizes
+    Key([mod], "Tab", lazy.next_layout()),		   # switch between layouts
+    Key([mod], "w", lazy.window.kill()),		   # kill window
+    Key([mod, "control"], "r", lazy.restart()),		   # restart qtile
+    Key([mod, "control"], "q", lazy.shutdown()),	   # shutdown qtile
+    Key([mod], "r", lazy.spawncmd()),
+    Key([mod], "Return", lazy.spawn("alacritty")),
+    Key([mod, "shift"], "Return", lazy.layout.toggle_split()),
+	# applications
+    Key([mod, "mod1"], "b", lazy.spawn("qutebrowser")),
+    Key([mod, "mod1"], "s", lazy.spawn("steam")),
+    Key([mod, "mod1"], "e", lazy.spawn("pcmanfm"))
 ]
 
-groups = [Group(i) for i in "123"]
-
-for i in groups:
-    keys.extend([
-        # mod1 + letter of group = switch to group
-        Key([mod], i.name, lazy.group[i.name].toscreen(),
-            desc="Switch to group {}".format(i.name)),
-
-        # mod1 + shift + letter of group = switch to & move focused window to group
-        Key([mod, "shift"], i.name, lazy.window.togroup(i.name, switch_group=True),
-            desc="Switch to & move focused window to group {}".format(i.name)),
-        # Or, use below if you prefer not to switch to that group.
-        # # mod1 + shift + letter of group = move focused window to group
-        # Key([mod, "shift"], i.name, lazy.window.togroup(i.name),
-        #     desc="move focused window to group {}".format(i.name)),
-    ])
-
-layouts = [
-    layout.Columns(border_focus_stack='#d75f5f'),
-    layout.Max(),
-    # Try more layouts by unleashing below layouts.
-    # layout.Stack(num_stacks=2),
-    # layout.Bsp(),
-    # layout.Matrix(),
-    # layout.MonadTall(),
-    # layout.MonadWide(),
-    # layout.RatioTile(),
-    # layout.Tile(),
-    # layout.TreeTab(),
-    # layout.VerticalTile(),
-    # layout.Zoomy(),
-]
-
+def init_floating_layout():
+    return layout.Floating(border_focus="ffb86c")
+    
+def init_layouts():
+    margin = 0
+    if len(qtile.conn.pseudoscreens) > 1:
+        margin = 8
+    l3liss = dict(margin=margin, border_width=3, border_normal="282a36",
+                  border_focus="50fa7b", border_focus_stack="ffb86c")
+    layouts = [
+        layout.Max(),
+        layout.Columns(border_on_single=True, num_columns=2, grow_amount=5, **l3liss)
+    ]
+    return layouts
+  
 widget_defaults = dict(
-    font='sans',
-    fontsize=12,
-    padding=3,
+    font='mononoki bold',
+    fontsize=13,
+    padding=6,
+    background=("#282a36"),
+    foreground=("#bd93f9")
 )
+
 extension_defaults = widget_defaults.copy()
 
 screens = [
     Screen(
-        bottom=bar.Bar(
+        top=bar.Bar(
             [
+                widget.Sep(linewidth = 2, padding = 6),
+                widget.Image(filename = "~/.config/qtile/icons/python.png"),
                 widget.CurrentLayout(),
                 widget.GroupBox(),
-                widget.Prompt(),
+                widget.Sep(linewidth = 2, padding = 6),
+                widget.Prompt(),    
                 widget.WindowName(),
-                widget.Chord(
-                    chords_colors={
-                        'launch': ("#ff0000", "#ffffff"),
-                    },
-                    name_transform=lambda name: name.upper(),
-                ),
+                widget.Sep(linewidth = 2, padding = 6),
                 widget.Systray(),
-                widget.Clock(format='%Y-%m-%d %a %I:%M %p'),
+                widget.BitcoinTicker(format="BTC: {avg}", **widget_defaults),
+                widget.Sep(linewidth = 2, padding = 6),
+                widget.Clock(format='%m-%d %a %I:%M %p'),
+                widget.Sep(linewidth = 2, padding = 6),
                 widget.QuickExit(),
+                widget.Sep(linewidth = 2, padding = 6),
             ],
             30,
         ),
     ),
 ]
 
-# Drag floating layouts.
-mouse = [
-    Drag([mod], "Button1", lazy.window.set_position_floating(),
-         start=lazy.window.get_position()),
-    Drag([mod], "Button3", lazy.window.set_size_floating(),
-         start=lazy.window.get_size()),
-    Click([mod], "Button2", lazy.window.bring_to_front())
-]
+groups = [Group(i) for i in "123"]
 
+for i in groups:
+    keys.extend([
+        Key([mod], i.name, lazy.group[i.name].toscreen(),
+            desc="Switch to group {}".format(i.name)),
+        Key([mod, "shift"], i.name, lazy.window.togroup(i.name, switch_group=True),
+            desc="Switch to & move focused window to group {}".format(i.name))
+    ])
+ 
+def init_mouse():
+    mouse = [Drag([mod], "Button1", lazy.window.set_position_floating(),
+                  start=lazy.window.get_position()),
+             Drag([mod], "Button3", lazy.window.set_size_floating(),
+                  start=lazy.window.get_size()),
+             Click([mod], "Button2", lazy.window.bring_to_front())]
+    return mouse
+
+@hook.subscribe.client_new
+def set_floating(window):
+    floating_layout = init_floating_layout()
+    layouts = init_layouts()
+    floating_classes = ("pcmanfm")
+    try:
+        if window.window.get_wm_class()[0] in floating_classes:
+            window.floating = True
+    except IndexError:
+        pass
+
+@hook.subscribe.client_new
+def set_parent(window):
+    client_by_pid = {}
+    for client in qtile.windows_map.values():
+        client_pid = client.window.get_net_wm_pid()
+        client_by_pid[client_pid] = client
+
+    pid = window.window.get_net_wm_pid()
+    ppid = psutil.Process(pid).ppid()
+    while ppid:
+        window.parent = client_by_pid.get(ppid)
+        if window.parent:
+            return
+        ppid = psutil.Process(ppid).ppid()
+
+@hook.subscribe.client_new
+def swallow(window):
+    if window.parent:
+        window.parent.minimized = True
+
+@hook.subscribe.client_killed
+def unswallow(window):
+    if window.parent:
+        window.parent.minimized = False
+    
+auto_fullscreen = False
+focus_on_window_activation = "never"	
 dgroups_key_binder = None
-dgroups_app_rules = []  # type: List
-
 follow_mouse_focus = True
 bring_front_click = False
 cursor_warp = False
-floating_layout = layout.Floating(float_rules=[
-    # Run the utility of `xprop` to see the wm class and name of an X client.
-    *layout.Floating.default_float_rules,
-    Match(wm_class='confirmreset'),  # gitk
-    Match(wm_class='makebranch'),  # gitk
-    Match(wm_class='maketag'),  # gitk
-    Match(wm_class='ssh-askpass'),  # ssh-askpass
-    Match(title='branchdialog'),  # gitk
-    Match(title='pinentry'),  # GPG key password entry
-])
-auto_fullscreen = True
-focus_on_window_activation = "smart"
+floating_layout = init_floating_layout()
+layouts = init_layouts()
+mouse = init_mouse()
+wmname = "Qtile"
