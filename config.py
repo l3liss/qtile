@@ -1,61 +1,46 @@
-from libqtile import bar, layout, qtile, widget
-from libqtile.config import Click, Drag, Group, Key, Match, Screen
+from libqtile import bar, layout, widget
+from libqtile.config import Drag, Group, Key, Match, Screen, Click
 from libqtile.lazy import lazy
-from libqtile.utils import guess_terminal
-
-# Dracula color palette
-dracula_bg        = "#282a36"
-dracula_current   = "#44475a"
-dracula_fg        = "#f8f8f2"
-dracula_purple    = "#bd93f9"
-dracula_pink      = "#ff79c6"
-dracula_cyan      = "#8be9fd"
-dracula_green     = "#50fa7b"
-dracula_orange    = "#ffb86c"
-dracula_comment   = "#6272a4"
 
 mod = "mod4"
-terminal = guess_terminal()
+terminal = "alacritty"
 
 keys = [
-    Key([mod], "h", lazy.layout.left(), desc="Move focus to left"),
-    Key([mod], "l", lazy.layout.right(), desc="Move focus to right"),
-    Key([mod], "j", lazy.layout.down(), desc="Move focus down"),
-    Key([mod], "k", lazy.layout.up(), desc="Move focus up"),
-    Key([mod], "space", lazy.layout.next(), desc="Move window focus to other window"),
-    Key([mod, "shift"], "h", lazy.layout.shuffle_left(), desc="Move window to the left"),
-    Key([mod, "shift"], "l", lazy.layout.shuffle_right(), desc="Move window to the right"),
-    Key([mod, "shift"], "j", lazy.layout.shuffle_down(), desc="Move window down"),
-    Key([mod, "shift"], "k", lazy.layout.shuffle_up(), desc="Move window up"),
-    Key([mod, "control"], "h", lazy.layout.grow_left(), desc="Grow window to the left"),
-    Key([mod, "control"], "l", lazy.layout.grow_right(), desc="Grow window to the right"),
-    Key([mod, "control"], "j", lazy.layout.grow_down(), desc="Grow window down"),
-    Key([mod, "control"], "k", lazy.layout.grow_up(), desc="Grow window up"),
-    Key([mod], "n", lazy.layout.normalize(), desc="Reset all window sizes"),
-    Key([mod, "shift"], "Return", lazy.layout.toggle_split(), desc="Toggle split/unsplit sides of stack"),
-    Key([mod], "Return", lazy.spawn(terminal), desc="Launch terminal"),
-    Key([mod], "Tab", lazy.next_layout(), desc="Toggle between layouts"),
-    Key([mod], "w", lazy.window.kill(), desc="Kill focused window"),
-    Key([mod], "f", lazy.window.toggle_fullscreen(), desc="Toggle fullscreen on focused window"),
-    Key([mod], "t", lazy.window.toggle_floating(), desc="Toggle floating on focused window"),
-    Key([mod, "control"], "r", lazy.reload_config(), desc="Reload the config"),
-    Key([mod, "control"], "q", lazy.shutdown(), desc="Shutdown Qtile"),
-    # Bind mod+p to launch rofi (optional alternative)
-    Key([mod], "p", lazy.spawn("rofi -show drun"), desc="Launch rofi menu"),
+    Key([mod], "h", lazy.layout.left()),
+    Key([mod], "l", lazy.layout.right()),
+    Key([mod], "j", lazy.layout.down()),
+    Key([mod], "k", lazy.layout.up()),
+    Key([mod], "space", lazy.layout.next()),
+    Key([mod, "shift"], "h", lazy.layout.shuffle_left()),
+    Key([mod, "shift"], "l", lazy.layout.shuffle_right()),
+    Key([mod, "shift"], "j", lazy.layout.shuffle_down()),
+    Key([mod, "shift"], "k", lazy.layout.shuffle_up()),
+    Key([mod, "control"], "h", lazy.layout.grow_left()),
+    Key([mod, "control"], "l", lazy.layout.grow_right()),
+    Key([mod, "control"], "j", lazy.layout.grow_down()),
+    Key([mod, "control"], "k", lazy.layout.grow_up()),
+    Key([mod], "n", lazy.layout.normalize()),
+    Key([mod, "shift"], "Return", lazy.layout.toggle_split()),
+    Key([mod], "Return", lazy.spawn(terminal)),
+    Key([mod], "Tab", lazy.next_layout()),
+    Key([mod], "c", lazy.window.kill()),  # changed kill window to mod+c
+    Key([mod], "f", lazy.window.toggle_fullscreen()),
+    Key([mod], "t", lazy.window.toggle_floating()),
+    Key([mod, "control"], "r", lazy.reload_config()),
+    Key([mod, "control"], "q", lazy.shutdown()),
+    Key([mod], "p", lazy.spawn("rofi -show drun")),
 ]
 
-# Define 6 groups (workspaces).
 groups = [Group(i) for i in "123456"]
 
 for i in groups:
     keys.extend([
-        Key([mod], i.name, lazy.group[i.name].toscreen(), desc=f"Switch to group {i.name}"),
-        Key([mod, "shift"], i.name, lazy.window.togroup(i.name, switch_group=True),
-            desc=f"Switch to & move focused window to group {i.name}"),
+        Key([mod], i.name, lazy.group[i.name].toscreen()),
+        Key([mod, "shift"], i.name, lazy.window.togroup(i.name, switch_group=True)),
     ])
 
 layouts = [
-    layout.Columns(border_focus_stack=[dracula_pink, dracula_purple], border_width=4, margin=3),
+    layout.Columns(border_focus_stack=["#ff79c6", "#bd93f9"], border_width=4, margin=3),
     layout.Max(margin=3),
 ]
 
@@ -63,8 +48,8 @@ widget_defaults = dict(
     font="sans",
     fontsize=12,
     padding=3,
-    background=dracula_bg,
-    foreground=dracula_fg,
+    background="#282a36",
+    foreground="#f8f8f2",
 )
 extension_defaults = widget_defaults.copy()
 
@@ -72,48 +57,26 @@ screens = [
     Screen(
         bottom=bar.Bar(
             [
-                # Decorative "Qtile" widget as an art piece.
-                widget.TextBox(
-                    "Qtile",
-                    foreground=dracula_fg,
-                    background=dracula_bg,
-                    fontsize=16,
-                    font="sans bold",
-                    padding=10,
-                    markup=True,
-                ),
-                # A separator for style.
-                widget.Sep(linewidth=2, padding=10, foreground=dracula_comment, background=dracula_bg),
-                # GroupBox with Dracula colors.
+                widget.TextBox(" Qtile ", foreground="#f8f8f2", background="#bd93f9", fontsize=16, font="sans bold", padding=10, markup=True),
+                widget.Sep(linewidth=2, padding=10, foreground="#6272a4"),
                 widget.GroupBox(
-                    active=dracula_green,
-                    inactive=dracula_comment,
+                    active="#50fa7b",
+                    inactive="#6272a4",
                     borderwidth=2,
                     highlight_method="line",
-                    this_current_screen_border=dracula_pink,
-                    this_screen_border=dracula_cyan,
-                    other_screen_border=dracula_orange,
-                    background=dracula_bg,
+                    this_current_screen_border="#ff79c6",
+                    this_screen_border="#8be9fd",
+                    other_screen_border="#ffb86c",
                 ),
-                widget.Sep(linewidth=2, padding=10, foreground=dracula_comment, background=dracula_bg),
-                widget.Prompt(),
-                widget.Sep(linewidth=2, padding=10, foreground=dracula_comment, background=dracula_bg),
-                # Display the current window name.
-                widget.WindowName(foreground=dracula_fg, background=dracula_bg),
-                widget.Sep(linewidth=2, padding=10, foreground=dracula_comment, background=dracula_bg),
-                # Chord widget with Dracula accent colors.
-                widget.Chord(
-                    chords_colors={"launch": (dracula_pink, dracula_fg)},
-                    name_transform=lambda name: name.upper(),
-                    background=dracula_bg,
-                ),
-                widget.Sep(linewidth=2, padding=10, foreground=dracula_comment, background=dracula_bg),
-                # Clock widget
-                widget.Clock(format="%Y-%m-%d %a %I:%M %p", foreground=dracula_fg, background=dracula_bg),
+                widget.Sep(linewidth=2, padding=10, foreground="#6272a4"),
+                widget.WindowName(),
+                widget.Sep(linewidth=2, padding=10, foreground="#6272a4"),
+                widget.Clock(format="%Y-%m-%d %a %I:%M %p", update_interval=60),
             ],
             24,
-            background=dracula_bg,
+            background="#282a36",
         ),
+        x11_drag_polling_rate=60,
     ),
 ]
 
@@ -139,8 +102,7 @@ floating_layout = layout.Floating(
         Match(wm_class="ssh-askpass"),
         Match(title="branchdialog"),
         Match(title="pinentry"),
-    ],
-    background=dracula_bg
+    ]
 )
 auto_fullscreen = True
 focus_on_window_activation = "smart"
