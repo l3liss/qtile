@@ -46,8 +46,8 @@ layouts = [
 
 widget_defaults = dict(
     font="sans",
-    fontsize=12,
-    padding=3,
+    fontsize=15,
+    padding=6,
     background="#282a36",
     foreground="#f8f8f2",
 )
@@ -57,12 +57,12 @@ screens = [
     Screen(
         bottom=bar.Bar(
             [
-                widget.TextBox(" Qtile ", foreground="#f8f8f2", background="#bd93f9", fontsize=16, font="sans bold", padding=10, markup=True),
+                widget.TextBox(" § ", foreground="#f8f8f2", background="#282a36", fontsize=21, font="sans bold", padding=10, markup=True),
                 widget.Sep(linewidth=2, padding=10, foreground="#6272a4"),
                 widget.GroupBox(
                     active="#50fa7b",
                     inactive="#6272a4",
-                    borderwidth=2,
+                    borderwidth=3,
                     highlight_method="line",
                     this_current_screen_border="#ff79c6",
                     this_screen_border="#8be9fd",
