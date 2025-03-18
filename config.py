@@ -1,98 +1,52 @@
-import asyncio
-from libqtile import bar, layout, widget
-from libqtile.config import Drag, Group, Key, Match, Screen, Click
+from libqtile import bar, layout, widget, hook
+from libqtile.config import Drag, Group, Screen
 from libqtile.lazy import lazy
+import subprocess
 
-mod = "mod4"
-terminal = "alacritty"
+# Function to get connected screen identifiers
+def get_screen_identifiers():
+    xrandr_output = subprocess.check_output(["xrandr"]).decode("utf-8")
+    screens = []
+    for line in xrandr_output.splitlines():
+        if " connected" in line:
+            parts = line.split()
+            screen_name = parts[0]
+            screens.append(screen_name)
+    return screens
 
-# Async command runner
-async def run_command(cmd):
-    proc = await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
-    stdout, _ = await proc.communicate()
-    return stdout.decode().strip()
+# Function to assign groups to screens
+def assign_groups_to_screens(qtile):
+    screen_identifiers = get_screen_identifiers()
+    for group in qtile.groups:
+        if group.name == "1" or group.name == "5":  # DEV or SYS
+            group.toscreen(1 if "HDMI-0" in screen_identifiers else 0)
+        else:  # WEB, COM, MED, DOC
+            group.toscreen(0 if "DP-0" in screen_identifiers else 1)
 
-# Key bindings with proper window resizing
-keys = [
-    # Navigation
-    Key([mod], "h", lazy.layout.left()),
-    Key([mod], "l", lazy.layout.right()),
-    Key([mod], "j", lazy.layout.down()),
-    Key([mod], "k", lazy.layout.up()),
-    Key([mod], "space", lazy.layout.next()),
-    
-    # Window manipulation with proper grow commands
-    Key([mod, "shift"], "h", lazy.layout.shuffle_left()),
-    Key([mod, "shift"], "l", lazy.layout.shuffle_right()),
-    Key([mod, "shift"], "j", lazy.layout.shuffle_down()),
-    Key([mod, "shift"], "k", lazy.layout.shuffle_up()),
-    Key([mod, "control"], "h", lazy.layout.grow_left()),
-    Key([mod, "control"], "l", lazy.layout.grow_right()),
-    Key([mod, "control"], "j", lazy.layout.grow_down()),
-    Key([mod, "control"], "k", lazy.layout.grow_up()),
-    Key([mod], "n", lazy.layout.normalize()),
-    
-    # System
-    Key([mod, "control"], "r", lazy.reload_config()),
-    Key([mod, "control"], "q", lazy.shutdown()),
-    
-    # Applications
-    Key([mod], "Return", lazy.spawn(terminal)),
-    Key([mod], "p", lazy.spawn("rofi -show drun")),
-    
-    # Layout control
-    Key([mod], "Tab", lazy.next_layout()),
-    Key([mod, "shift"], "Return", lazy.layout.toggle_split()),
-    Key([mod], "f", lazy.window.toggle_fullscreen()),
-    Key([mod], "t", lazy.window.toggle_floating()),
-    Key([mod], "c", lazy.window.kill()),
-]
-
-# Improved Group System
+# Groups
 groups = [
-    Group("1", label="DEV", matches=[Match(wm_class="code"), Match(wm_class="jetbrains-.*")]),
-    Group("2", label="WEB", matches=[Match(wm_class="firefox"), Match(wm_class="chromium")]),
-    Group("3", label="COM", matches=[Match(wm_class="thunderbird"), Match(wm_class="discord")]),
-    Group("4", label="MED", matches=[Match(wm_class="vlc"), Match(wm_class="gimp")]),
-    Group("5", label="SYS", matches=[Match(wm_class="alacritty"), Match(wm_class="htop")]),
-    Group("6", label="DOC", matches=[Match(wm_class="libreoffice"), Match(wm_class="evince")]),
+    Group("1", label="DEV", matches=[Match(wm_class="code"), Match(wm_class="jetbrains-.*")], screen_affinity=1),  # HDMI-0
+    Group("2", label="SYS", matches=[Match(wm_class="alacritty"), Match(wm_class="htop")], screen_affinity=1),  # HDMI-0
+    Group("3", label="WEB", matches=[Match(wm_class="firefox"), Match(wm_class="chromium")], screen_affinity=0),  # DP-0
+    Group("4", label="COM", matches=[Match(wm_class="thunderbird"), Match(wm_class="discord")], screen_affinity=0),  # DP-0
+    Group("5", label="MED", matches=[Match(wm_class="vlc"), Match(wm_class="gimp")], screen_affinity=0),  # DP-0
+    Group("6", label="DOC", matches=[Match(wm_class="libreoffice"), Match(wm_class="evince")], screen_affinity=0),  # DP-0
 ]
 
-for i in groups:
-    keys.extend([
-        Key([mod], i.name, lazy.group[i.name].toscreen()),
-        Key([mod, "shift"], i.name, lazy.window.togroup(i.name)),
-    ])
-
-# Layouts with proper grow settings
+# Layouts
 layouts = [
     layout.Columns(
         border_focus="#ff79c6",
         border_normal="#bd93f9",
         border_width=2,
         margin=4,
-        insert_position=1,
-        grow_amount=10  # Added grow amount for better resizing
     ),
     layout.Max(),
-    layout.MonadTall(
-        border_focus="#ff79c6",
-        border_normal="#bd93f9",
-        border_width=2,
-        margin=4,
-        ratio=0.65,
-        change_ratio=0.05,
-        min_ratio=0.25,
-        max_ratio=0.75,
-        grow_amount=10
-    ),
 ]
 
-# Bottom Bar Setup
-def create_bar(primary=True):
+# Bar setup
+def create_bar(visible_groups):
+    # Default to primary screen for Systray
     return bar.Bar(
         [
             widget.TextBox(" § ", fontsize=21, padding=10, foreground="#ff79c6"),
@@ -104,86 +58,40 @@ def create_bar(primary=True):
                 highlight_method="block",
                 block_highlight_text_color="#ff79c6",
                 disable_drag=True,
-                urgent_alert_method="block",
-                this_current_screen_border="#ff79c6",
-                spacing=10,
+                visible_groups=visible_groups,  # Set which groups to show on each screen
             ),
-            widget.Sep(linewidth=2, padding=10),
             widget.WindowName(max_chars=40, empty_group_string="Desktop"),
             widget.Spacer(),
-            widget.Clock(
-                format="%Y-%m-%d %a %I:%M %p",
-                update_interval=10,
-                foreground="#8be9fd"
-            ),
-            widget.Systray() if primary else widget.CurrentLayoutIcon(),
+            widget.Clock(format="%Y-%m-%d %a %I:%M %p"),
+            # Only add Systray on the primary screen (DP-0)
+            widget.Systray() if "3" in visible_groups or "4" in visible_groups else widget.CurrentLayoutIcon(),
         ],
         48,
-        margin=[6, 8, 2, 8],
         background="#282a36dd",
         opacity=0.95,
     )
 
+# Screens setup
 screens = [
-    Screen(bottom=create_bar(primary=True)),
-    Screen(bottom=create_bar(primary=False)),
+    Screen(
+        bottom=create_bar(visible_groups=["3", "4", "5", "6"]),  # Groups on DP-0
+    ),
+    Screen(
+        bottom=create_bar(visible_groups=["1", "2"]),  # Groups on HDMI-0
+    ),
 ]
 
-# Fixed Mouse Configuration
+# Mouse config
 mouse = [
-    Drag([mod], "Button1", 
-        lazy.window.set_position_floating(),
-        start=lazy.window.get_position()
-    ),
-    Drag([mod], "Button3", 
-        lazy.window.set_size_floating(),
-        start=lazy.window.get_size()
-    ),
-    Click([mod], "Button2", lazy.window.bring_to_front()),
+    Drag(["mod4"], "Button1", lazy.window.set_position_floating()),
+    Drag(["mod4"], "Button3", lazy.window.set_size_floating()),
 ]
 
-# Widget defaults
-widget_defaults = dict(
-    font="JetBrains Mono Medium",
-    fontsize=18,
-    padding=4,
-    background="#282a36",
-    foreground="#f8f8f2",
-)
-extension_defaults = widget_defaults.copy()
+# Hooks
+@hook.subscribe.startup_once
+def startup():
+    assign_groups_to_screens(qtile)
 
-# Floating layout
-floating_layout = layout.Floating(
-    border_focus="#ff79c6",
-    border_normal="#bd93f9",
-    border_width=2,
-    fullscreen_border_width=0,
-    max_border_width=0,
-    float_rules=[
-        *layout.Floating.default_float_rules,
-        Match(wm_class="confirm"),
-        Match(wm_class="dialog"),
-        Match(wm_class="download"),
-        Match(wm_class="error"),
-        Match(wm_class="file_progress"),
-        Match(wm_class="notification"),
-        Match(wm_class="splash"),
-        Match(wm_class="toolbar"),
-        Match(title="branchdialog"),
-        Match(title="pinentry"),
-    ]
-)
-
-# General configuration with fixed focus settings
-dgroups_key_binder = None
-dgroups_app_rules = []
-follow_mouse_focus = True  # Enable mouse focus following
-bring_front_click = True   # Bring window to front on click
-cursor_warp = False
-auto_fullscreen = True
-focus_on_window_activation = "smart"
-reconfigure_screens = True
-auto_minimize = True
-wl_input_rules = None
-
-wmname = "LG3D"
+@hook.subscribe.screen_change
+def screen_change(qtile):
+    assign_groups_to_screens(qtile)
