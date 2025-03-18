@@ -1,6 +1,7 @@
 from libqtile import bar, layout, widget, hook
-from libqtile.config import Drag, Group, Screen
+from libqtile.config import Drag, Group, Screen, Match
 from libqtile.lazy import lazy
+from keys import keys
 import subprocess
 
 # Function to get connected screen identifiers
@@ -66,7 +67,7 @@ def create_bar(visible_groups):
             # Only add Systray on the primary screen (DP-0)
             widget.Systray() if "3" in visible_groups or "4" in visible_groups else widget.CurrentLayoutIcon(),
         ],
-        48,
+        36,
         background="#282a36dd",
         opacity=0.95,
     )
@@ -86,12 +87,3 @@ mouse = [
     Drag(["mod4"], "Button1", lazy.window.set_position_floating()),
     Drag(["mod4"], "Button3", lazy.window.set_size_floating()),
 ]
-
-# Hooks
-@hook.subscribe.startup_once
-def startup():
-    assign_groups_to_screens(qtile)
-
-@hook.subscribe.screen_change
-def screen_change(qtile):
-    assign_groups_to_screens(qtile)
