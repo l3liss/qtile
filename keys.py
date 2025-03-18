@@ -29,7 +29,6 @@ keys = [
     Key([mod, "control"], "l", lazy.layout.grow_right()),
     Key([mod, "control"], "j", lazy.layout.grow_down()),
     Key([mod, "control"], "k", lazy.layout.grow_up()),
-    Key([mod], "n", lazy.layout.normalize()),
 
     # System
     Key([mod, "control"], "r", lazy.reload_config()),
@@ -37,7 +36,6 @@ keys = [
 
     # Applications
     Key([mod], "Return", lazy.spawn(terminal)),
-    Key([mod], "s", lazy.spawn("launch_steam.sh")),
     Key([mod], "p", lazy.spawn("rofi -show drun")),
 
     # Layout control
